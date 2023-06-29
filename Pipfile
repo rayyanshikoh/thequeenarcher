@@ -7,6 +7,8 @@ name = "pypi"
 "discord.py" = "*"
 python-dotenv = "*"
 pytz = "*"
+requests = "*"
+discord-pretty-help = "*"
 
 [dev-packages]
 
