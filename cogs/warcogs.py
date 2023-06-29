@@ -52,6 +52,11 @@ def check_war_status():
             result = f"Not currently in war"
         
         # When War Preparation is ongoing
+        elif data["state"] == "preparation":
+            opponents = data["opponent"]["name"]
+            war_start_time = get_utc_time(data["startTime"])
+            result = f"War starts at {war_start_time.strftime('%I:%M %p')}"
+
 
         # When War Battle Day is ongoing
     else:
@@ -75,6 +80,7 @@ class WarUtils(
     @commands.command(name="warstatus", help="Get the current war status")
     async def warstatus(self, ctx):
         result, state, opponents = check_war_status()
+        # War ended
         if state == "warEnded":
             embed = discord.embeds.Embed(
                 colour=discord.Colour.purple(),
@@ -84,6 +90,7 @@ class WarUtils(
                 name=f"PurpleValkyries vs {opponents}", value=result, inline=True
             )
             await ctx.send(embed=embed)
+        # Searching for war
         elif state == "notInWar":
             embed = discord.embeds.Embed(
                 colour=discord.Colour.purple(),
@@ -93,6 +100,14 @@ class WarUtils(
                 url="https://api-assets.clashofclans.com/badges/200/iNp9fzLTN7FKaCUCc5UOjQhUvRUloa9J-bihgyWwMxQ.png"
             )
             embed.add_field(name=f"PurpleValkyries", value=result, inline=True)
+            await ctx.send(embed=embed)
+        # War Preparation day
+        elif state == "preparation":
+            embed = discord.embeds.Embed(
+                colour=discord.Colour.purple(),
+                title="War Status",
+            )
+            embed.add_field(name=f"PurpleValkyries vs {opponents}", value=result, inline=True)
             await ctx.send(embed=embed)
         else:
             await ctx.send("Something's wrong")
