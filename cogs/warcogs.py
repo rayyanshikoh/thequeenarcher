@@ -45,20 +45,23 @@ def check_war_status():
                     result = f"We lost! {our_destruction}% < {opponent_destruction}%"
                 else:
                     result = f"It's a tie!"
-        
+
         # When searching for a war
         elif data["state"] == "notInWar":
             opponents = "N/A"
             result = f"Not currently in war"
-        
+
         # When War Preparation is ongoing
         elif data["state"] == "preparation":
             opponents = data["opponent"]["name"]
             war_start_time = get_utc_time(data["startTime"])
             result = f"War starts at {war_start_time.strftime('%I:%M %p')}"
 
-
         # When War Battle Day is ongoing
+        elif data["state"] == "inWar":
+            opponents = data["opponent"]["name"]
+            war_end_time = get_utc_time(data["endTime"])
+            result = f"War ends at {war_end_time.strftime('%I:%M %p')}"
     else:
         result = f"Error: {response.status_code}"
         print(response.json())
@@ -107,34 +110,46 @@ class WarUtils(
                 colour=discord.Colour.purple(),
                 title="War Status",
             )
-            embed.add_field(name=f"PurpleValkyries vs {opponents}", value=result, inline=True)
+            embed.add_field(
+                name=f"PurpleValkyries vs {opponents}", value=result, inline=True
+            )
             await ctx.send(embed=embed)
+
+        elif state == "inWar":
+            embed = discord.embeds.Embed(
+                colour=discord.Colour.purple(),
+                title="War Status",
+            )
+            embed.add_field(
+                name=f"PurpleValkyries vs {opponents}", value=result, inline=True
+            )
+            await ctx.send(embed=embed)
+
         else:
             await ctx.send("Something's wrong")
 
     async def send_all_player_embed(self, channel, players):
         available_players_full = players
         if len(available_players_full) > 26:
+            print("More than 26 players")
             available_players = available_players_full[:25]
             available_players2 = available_players_full[25:]
             embed1 = discord.Embed(
                 colour=discord.Colour.purple(),
-                title="Available for War - 1",
+                title="Available for War - Page 1",
             )
             embed2 = discord.Embed(
                 colour=discord.Colour.purple(),
-                title="Available for War - 2",
+                title="Available for War - Page 2",
             )
             for player in available_players:
                 embed1.add_field(name=f"{player}", value="Available", inline=True)
             for player in available_players2:
                 embed2.add_field(name=f"{player}", value="Available", inline=True)
-            channel_obj = self.bot.get_channel(channel)
-            if channel_obj:
-                await channel_obj.send("Hello, channel!")
-                await channel_obj.send(embed=embed1)
-                await channel_obj.send(embed=embed2)
+            await channel.send(embed=embed1)
+            await channel.send(embed=embed2)
         else:
+            print("Less than 26 players")
             embed = discord.Embed(
                 colour=discord.Colour.purple(),
                 title="Available for War",
@@ -183,9 +198,7 @@ class WarUtils(
     async def availableforwar(self, ctx):
         await ctx.send("Thinking...")
         available_players = await self.get_available_war_players()
-        await self.send_all_player_embed(
-            ctx.channel, available_players
-        )
+        await self.send_all_player_embed(ctx.channel, available_players)
 
 
 async def setup(bot):
