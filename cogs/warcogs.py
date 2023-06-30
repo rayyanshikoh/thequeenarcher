@@ -55,13 +55,16 @@ def check_war_status():
         elif data["state"] == "preparation":
             opponents = data["opponent"]["name"]
             war_start_time = get_utc_time(data["startTime"])
-            result = f"War starts at {war_start_time.strftime('%I:%M %p')}"
+            result = (
+                f"War starts at {war_start_time.strftime('%B %d, %Y at %I:%M %p')} UTC"
+            )
 
         # When War Battle Day is ongoing
         elif data["state"] == "inWar":
             opponents = data["opponent"]["name"]
             war_end_time = get_utc_time(data["endTime"])
-            result = f"War ends at {war_end_time.strftime('%I:%M %p')}"
+            result = f"War ends on {war_end_time.strftime('%B %d, %Y at %I:%M %p')} UTC"
+
     else:
         result = f"Error: {response.status_code}"
         print(response.json())
@@ -183,7 +186,12 @@ class WarUtils(
                                 if player_response.status == 200:
                                     player_data = await player_response.json()
                                     if player_data["warPreference"] == "in":
-                                        available_players.append(player_data["name"])
+                                        available_players.append(
+                                            [
+                                                player_data["name"],
+                                                player_data["townHallLevel"],
+                                            ]
+                                        )
                                     else:
                                         pass
                                 else:
@@ -196,9 +204,52 @@ class WarUtils(
 
     @commands.command(name="availableforwar", help="Get the list of available players")
     async def availableforwar(self, ctx):
-        await ctx.send("Thinking...")
-        available_players = await self.get_available_war_players()
-        await self.send_all_player_embed(ctx.channel, available_players)
+        async with ctx.typing():
+            available_players = await self.get_available_war_players()
+            available_players_full = available_players
+            if len(available_players_full) > 26:
+                print("More than 26 players")
+                available_players = available_players_full[:25]
+                available_players2 = available_players_full[25:]
+                embed1 = discord.Embed(
+                    colour=discord.Colour.purple(),
+                    title="Available for War - Page 1",
+                )
+                embed2 = discord.Embed(
+                    colour=discord.Colour.purple(),
+                    title="Available for War - Page 2",
+                )
+                for player in available_players:
+                    embed1.add_field(
+                        name=f"{player[0]}", value=f"Townhall {player[1]}", inline=True
+                    )
+                for player in available_players2:
+                    embed2.add_field(
+                        name=f"{player[0]}", value=f"Townhall {player[1]}", inline=True
+                    )
+                embed1.set_footer(
+                    text=f"{len(available_players_full)} players available"
+                )
+                embed2.set_footer(
+                    text=f"{len(available_players_full)} players available"
+                )
+                await ctx.channel.send(embed=embed1)
+                await ctx.channel.send(embed=embed2)
+            else:
+                print("Less than 26 players")
+                embed = discord.Embed(
+                    colour=discord.Colour.purple(),
+                    title="Available for War",
+                )
+                for player in available_players_full:
+                    embed.add_field(
+                        name=f"{player[0]}", value=f"Townhall {player[1]}", inline=True
+                    )
+                embed.set_footer(
+                    text=f"{len(available_players_full)} players available"
+                )
+                await ctx.channel.send(embed=embed)
+            # await self.send_all_player_embed(ctx.channel, available_players)
 
 
 async def setup(bot):
